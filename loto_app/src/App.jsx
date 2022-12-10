@@ -10,17 +10,28 @@ function App() {
   const [lcContract, setLcContract] = useState();
   const [lotteryPot, setLotteryPot] = useState();
   const [players, setPlayers] = useState([]);
-  const [history, setHistory] = useState();
+  const [history, setHistory] = useState([]);
   const [id, setId] = useState();
 
   useEffect(() => {
     // console.log("Hr");
+    updateState();
+  }, [lcContract]);
+
+  window.ethereum.on("accountChanged", async () => {
+    const accounts = await web3.eth.getAccounts();
+    setAddress(accounts[0]);
+  });
+
+  const updateState = () => {
     if (lcContract) getPot();
     if (lcContract) getPlayers();
-  }, [lcContract, lotteryPot, players]);
+    if (lcContract) getHistory();
+    if (lcContract) getlotteryid();
+  };
 
   const getPot = async () => {
-    console.log("Pot");
+    //console.log("Pot");
     const Pot = await lcContract.methods.getPotbalance().call();
     setLotteryPot(web3.utils.fromWei(Pot, "ether"));
   };
@@ -32,20 +43,26 @@ function App() {
     setPlayers(lottery_Players);
   };
 
-  const getHistory = async () => {
-    const lottery_history = await lcContract.methods.lotteryhistory().call();
-    setHistory(lottery_history);
-    console.log(JSON.parse(lottery_history));
+  const getHistory = async (id) => {
+    for (let i = parseInt(id); i > 0; i--) {
+      //console.log("getlotterry");
+      const winnerAddress = await lcContract.methods.lotteryhistory(i).call();
+      const historyObj = {};
+      historyObj.id = id;
+      historyObj.address = winnerAddress;
+      setHistory((history) => [...history, historyObj]);
+    }
   };
-  const getId = async () => {
-    const lottery_id = await lcContract.methods.lotteryid().call();
-    // setHistory(lottery_id);
-    console.log(lottery_id);
+  const getlotteryid = async () => {
+    const lottery_id = await lcContract.methods.getlotteryid().call();
+    //console.log(lottery_id);
     setId(lottery_id);
+    await getHistory(lottery_id);
+    console.log(JSON.stringify(history));
   };
 
   const playNowHandler = async () => {
-    console.log("play Now");
+    //console.log("play Now");
     try {
       const play = await lcContract.methods.Play().send({
         from: address,
@@ -53,18 +70,39 @@ function App() {
         gas: 300000,
         gasPrice: null,
       });
+      updateState();
     } catch (err) {
       setError(err.message);
     }
   };
   const pickWinnerHandler = async () => {
+    console.log("PickWinner");
     setError("");
+    setSuccessMsg("");
     try {
-      const play = await lcContract.methods.Paywinner().send({
+      await lcContract.methods.pickWinner().send({
         from: address,
         gas: 300000,
         gasPrice: null,
       });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const payWinnerHandler = async () => {
+    console.log("PickWinner");
+    setError("");
+    setSuccessMsg("");
+    try {
+      await lcContract.methods.Paywinner().send({
+        from: address,
+        gas: 300000,
+        gasPrice: null,
+      });
+      const winnerAddress = await lcContract.methods.lotteryhistory(id).call();
+      setSuccessMsg(`The Winner round ${id - 1} is ${winnerAddress}`);
+      updateState();
     } catch (err) {
       setError(err.message);
     }
@@ -118,6 +156,10 @@ function App() {
           <button onClick={pickWinnerHandler} className="pick">
             Pick Winner
           </button>
+
+          <button onClick={payWinnerHandler} className="pick">
+            Pay Winner
+          </button>
           <section>
             <div className="error">
               <h3>{error}</h3>
@@ -128,13 +170,25 @@ function App() {
           <div className="history">
             <div className="data-tab">
               <h2>Lottery History</h2>
-              <p>Lottery #1 Winner:</p>
-              <p>
-                <a href="https://etherscan.io/address/0x60b2ECb7c8Ed53Bb4b4338860c1CcfCAa5Ff1218">
-                  0x60b2ECb7c8Ed53Bb4b4338860c1CcfCAa5Ff1218
-                </a>
-                <br />
-              </p>
+              {history &&
+                history.length > 0 &&
+                history.map((item) => {
+                  if (id !== item.id) {
+                    return (
+                      <div>
+                        <p>Lottery #{item.id} Winner:</p>
+                        <p>
+                          <a
+                            href={`https://etherscan.io/address/${item.address}`}
+                          >
+                            {item.address}
+                          </a>
+                          <br />
+                        </p>
+                      </div>
+                    );
+                  }
+                })}
             </div>
             <div className="data-tab">
               <h1>Players({players.length})</h1>

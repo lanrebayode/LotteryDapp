@@ -9,7 +9,7 @@ contract Lottery is VRFConsumerBaseV2 {
     address public owner;
     address payable[] public players;
     uint256 public lotteryid;
-    mapping(uint256 => address payable) lotteryhistory;
+    mapping(uint256 => address payable) public lotteryhistory;
 
     struct RequestStatus {
         bool fulfilled; // whether the request has been successfully fulfilled
@@ -47,11 +47,7 @@ contract Lottery is VRFConsumerBaseV2 {
     }
 
     // Assumes the subscription is funded sufficiently.
-    function requestRandomWords()
-        external
-        onlyOwner
-        returns (uint256 requestId)
-    {
+    function requestRandomWords() public onlyOwner returns (uint256 requestId) {
         // Will revert if subscription is not set and funded.
         requestId = COORDINATOR.requestRandomWords(
             keyHash,
@@ -77,11 +73,11 @@ contract Lottery is VRFConsumerBaseV2 {
         require(s_requests[_requestId].exists, "request not found");
         s_requests[_requestId].fulfilled = true;
         s_requests[_requestId].randomWords = _randomWords;
-        //  Paywinner();
+        pickWinner();
     }
 
     function getRequestStatus(uint256 _requestId)
-        external
+        public
         view
         returns (bool fulfilled, uint256[] memory randomWords)
     {
@@ -109,12 +105,17 @@ contract Lottery is VRFConsumerBaseV2 {
         _;
     }
 
-    //function pickWinner() public onlyOwner {
-    //  requestRandomWords();
-    //}
+    function pickWinner() public onlyOwner {
+        requestRandomWords();
+    }
 
     function Paywinner() public onlyOwner {
-        uint256 index = lastRequestId % players.length;
+        uint256[] memory _randomWords;
+        s_requests[lastRequestId].randomWords = _randomWords;
+        uint256 lastRandomWords = _randomWords[_randomWords.length - 1];
+        require(lastRandomWords > 0, "There must be a random number");
+
+        uint256 index = lastRandomWords % players.length;
         players[index].transfer(address(this).balance);
 
         lotteryhistory[lotteryid] = players[index];
@@ -130,5 +131,9 @@ contract Lottery is VRFConsumerBaseV2 {
         returns (address payable)
     {
         return lotteryhistory[_lotteryid];
+    }
+
+    function getlotteryid() public view returns (uint256) {
+        return lotteryid;
     }
 }
