@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity 0.8.17;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
@@ -77,7 +77,7 @@ contract Lottery is VRFConsumerBaseV2 {
     }
 
     function getRequestStatus(uint256 _requestId)
-        public
+        external
         view
         returns (bool fulfilled, uint256[] memory randomWords)
     {
@@ -110,12 +110,8 @@ contract Lottery is VRFConsumerBaseV2 {
     }
 
     function Paywinner() public onlyOwner {
-        uint256[] memory _randomWords;
-        s_requests[lastRequestId].randomWords = _randomWords;
-        uint256 lastRandomWords = _randomWords[_randomWords.length - 1];
-        require(lastRandomWords > 0, "There must be a random number");
-
-        uint256 index = lastRandomWords % players.length;
+        require(lastRequestId > 0, "Requires randomNumber to generate winner");
+        uint256 index = lastRequestId % players.length;
         players[index].transfer(address(this).balance);
 
         lotteryhistory[lotteryid] = players[index];
@@ -131,9 +127,5 @@ contract Lottery is VRFConsumerBaseV2 {
         returns (address payable)
     {
         return lotteryhistory[_lotteryid];
-    }
-
-    function getlotteryid() public view returns (uint256) {
-        return lotteryid;
     }
 }

@@ -6,6 +6,7 @@ import "./App.css";
 function App() {
   const [web3, setWeb3] = useState();
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [address, setAddress] = useState();
   const [lcContract, setLcContract] = useState();
   const [lotteryPot, setLotteryPot] = useState();
@@ -14,7 +15,7 @@ function App() {
   const [id, setId] = useState();
 
   useEffect(() => {
-    // console.log("Hr");
+    console.log("Hr");
     updateState();
   }, [lcContract]);
 
@@ -44,18 +45,20 @@ function App() {
   };
 
   const getHistory = async (id) => {
+    console.log("A");
     for (let i = parseInt(id); i > 0; i--) {
-      //console.log("getlotterry");
+      console.log("B");
+      console.log("getlotterry");
       const winnerAddress = await lcContract.methods.lotteryhistory(i).call();
       const historyObj = {};
-      historyObj.id = id;
+      historyObj.id = i;
       historyObj.address = winnerAddress;
       setHistory((history) => [...history, historyObj]);
     }
   };
   const getlotteryid = async () => {
-    const lottery_id = await lcContract.methods.getlotteryid().call();
-    //console.log(lottery_id);
+    const lottery_id = await lcContract.methods.lotteryid().call();
+    console.log(lottery_id);
     setId(lottery_id);
     await getHistory(lottery_id);
     console.log(JSON.stringify(history));
@@ -76,9 +79,10 @@ function App() {
     }
   };
   const pickWinnerHandler = async () => {
-    console.log("PickWinner");
     setError("");
+
     setSuccessMsg("");
+    console.log("PickWinner");
     try {
       await lcContract.methods.pickWinner().send({
         from: address,
