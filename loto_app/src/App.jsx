@@ -13,9 +13,11 @@ function App() {
   const [players, setPlayers] = useState([]);
   const [history, setHistory] = useState([]);
   const [id, setId] = useState();
+  const [random, setRandom] = useState();
 
   useEffect(() => {
     console.log("Hr");
+    if (lcContract) getlotteryid();
     if (lcContract) getHistory();
     updateState();
   }, [lcContract]);
@@ -29,7 +31,6 @@ function App() {
   const updateState = () => {
     if (lcContract) getPot();
     if (lcContract) getPlayers();
-    if (lcContract) getlotteryid();
   };
 
   const getPot = async () => {
@@ -53,7 +54,11 @@ function App() {
       const historyObj = {};
       historyObj.id = i;
       historyObj.address = winnerAddress;
-      setHistory((history) => [...history, historyObj]);
+      if ((id = id + 1)) {
+        setHistory((history) => [...history, historyObj]);
+      } else {
+        setHistory((history) => [history]);
+      }
     }
     //updateState();
   };
@@ -74,12 +79,15 @@ function App() {
         gas: 300000,
         gasPrice: null,
       });
+      const randomNumber = await lcContract.methods.lastRequestId().call();
+      setRandom(randomNumber);
       updateState();
     } catch (err) {
       setError(err.message);
     }
   };
   const pickWinnerHandler = async () => {
+    console.log(random);
     setError("");
 
     setSuccessMsg("");
@@ -148,7 +156,7 @@ function App() {
   };
 
   return (
-    <div>
+    <div className="App">
       <div className="Nav">
         <h1>Rex Lottery</h1>
         <button className="button" onClick={connectWalletHandler}>
@@ -158,7 +166,6 @@ function App() {
       <div className="columns">
         <div className="column1">
           <p>Enter the Lottery buy sending 0.01Ether</p>
-          <button onClick={playNowHandler}>Play Now</button>
           <button onClick={playNowHandler} className="play">
             Play Now!
           </button>
@@ -169,7 +176,7 @@ function App() {
             Pick Winner
           </button>
 
-          <button onClick={payWinnerHandler} className="pick">
+          <button onClick={payWinnerHandler} className="pay">
             Pay Winner
           </button>
           <section>
@@ -185,21 +192,19 @@ function App() {
               {history &&
                 history.length > 0 &&
                 history.map((item) => {
-                  if (id != item.id) {
-                    return (
-                      <div>
-                        <p>Round {item.id} Winner:</p>
-                        <p>
-                          <a
-                            href={`https://etherscan.io/address/${item.address}`}
-                          >
-                            {item.address}
-                          </a>
-                          <br />
-                        </p>
-                      </div>
-                    );
-                  }
+                  return (
+                    <div>
+                      <p>Round {item.id} Winner:</p>
+                      <p>
+                        <a
+                          href={`https://etherscan.io/address/${item.address}`}
+                        >
+                          {item.address}
+                        </a>
+                        <br />
+                      </p>
+                    </div>
+                  );
                 })}
             </div>
             <div className="data-tab">
