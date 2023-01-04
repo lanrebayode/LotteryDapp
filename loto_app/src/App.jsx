@@ -16,18 +16,19 @@ function App() {
 
   useEffect(() => {
     console.log("Hr");
+    if (lcContract) getHistory();
     updateState();
   }, [lcContract]);
 
-  window.ethereum.on("accountChanged", async () => {
+  window.ethereum.on("accountsChanged", async () => {
     const accounts = await web3.eth.getAccounts();
+    console.log(accounts[0]);
     setAddress(accounts[0]);
   });
 
   const updateState = () => {
     if (lcContract) getPot();
     if (lcContract) getPlayers();
-    if (lcContract) getHistory();
     if (lcContract) getlotteryid();
   };
 
@@ -45,16 +46,16 @@ function App() {
   };
 
   const getHistory = async (id) => {
-    console.log("A");
-    for (let i = parseInt(id); i > 0; i--) {
-      console.log("B");
-      console.log("getlotterry");
+    for (let i = parseInt(id) - 1; i > 0; i--) {
+      //console.log("B");
+      // console.log("getlotterry");
       const winnerAddress = await lcContract.methods.lotteryhistory(i).call();
       const historyObj = {};
       historyObj.id = i;
       historyObj.address = winnerAddress;
       setHistory((history) => [...history, historyObj]);
     }
+    //updateState();
   };
   const getlotteryid = async () => {
     const lottery_id = await lcContract.methods.lotteryid().call();
@@ -65,7 +66,7 @@ function App() {
   };
 
   const playNowHandler = async () => {
-    //console.log("play Now");
+    console.log(address);
     try {
       const play = await lcContract.methods.Play().send({
         from: address,
@@ -89,6 +90,9 @@ function App() {
         gas: 300000,
         gasPrice: null,
       });
+      // const winnerAddress = lotteryhistory[id - 1].address;
+      //setSuccessMsg(`The Winner of Round${id - 1} is ${winnerAddress}`);
+      //updateState();
     } catch (err) {
       setError(err.message);
     }
@@ -129,8 +133,12 @@ function App() {
         //console.log(accounts);
 
         //create local contract copy
-        const lc = lotteryContract(web3);
-        setLcContract(lc);
+        if (lcContract) {
+          console.log("Contract is loaded");
+        } else {
+          const lc = lotteryContract(web3);
+          setLcContract(lc);
+        }
       } catch (err) {
         setError(err.message);
       }
@@ -177,10 +185,10 @@ function App() {
               {history &&
                 history.length > 0 &&
                 history.map((item) => {
-                  if (id !== item.id) {
+                  if (id != item.id) {
                     return (
                       <div>
-                        <p>Lottery #{item.id} Winner:</p>
+                        <p>Round {item.id} Winner:</p>
                         <p>
                           <a
                             href={`https://etherscan.io/address/${item.address}`}
